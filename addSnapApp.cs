@@ -1,17 +1,17 @@
-﻿using MySql.Data.MySqlClient;
+﻿using System.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Data.SQLite;
 
 namespace BestWorker
 {
     public partial class addSnapApp : Form
     {
-        server server = new server();
-        MySqlConnection conn;
+        SQLiteConnection conn;
         dL dL = new dL();
         List<string> appliancesNameList = new List<string>();
         List<string> appliancesDateList = new List<string>();
@@ -19,7 +19,7 @@ namespace BestWorker
         public addSnapApp()
         {
             InitializeComponent();
-            conn = new MySqlConnection(server.get());
+            conn = new SQLiteConnection(dL.GetServ());
             dateTimePicker1.Value = DateTime.Today.AddMonths(1);
             comboLoad();
         }
@@ -34,7 +34,7 @@ namespace BestWorker
         void comboLoad()
         {
             comboBox1.DataSource = null;
-            DataSet ds = dL.get("select idobjects, concat(name, '  ( ', address, ' )') as nameaddress from objects order by name");
+            DataSet ds = dL.get("select idobjects, name || '  ( ' || address || ' )' as nameaddress from objects order by name");
             comboBox1.DataSource = ds.Tables[0];
             comboBox1.ValueMember = "idobjects";
             comboBox1.DisplayMember = "nameaddress";
@@ -59,7 +59,8 @@ namespace BestWorker
                     using (conn)
                         if (conn.State == ConnectionState.Closed)
                         {
-                            MySqlCommand cmd = new MySqlCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + ");", conn);
+                            int lastid = 0;
+                            SQLiteCommand cmd = new SQLiteCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + ");", conn);
                             conn.Open();
                             if (panel2.Visible == true && objectName.Text != "" && objectAddress.Text != "" && objectName.Text != " " && objectName.Text != "  ")
                             {                                
@@ -71,10 +72,19 @@ namespace BestWorker
                                 cmd.ExecuteNonQuery();
                                 MessageBox.Show("Добавлен объект");
 
+                                SQLiteCommand lastcomm = new SQLiteCommand("select last_insert_rowid() as idobjects from objects");
+                                conn.Open();
+                                cmd.ExecuteNonQuery();
+                                System.Object temp = lastcomm.ExecuteScalar();
+                                lastid = int.Parse(temp.ToString());
+
                                 dateTimePicker1.Value = DateTime.Today;
                                 folderBrowserDialog1.SelectedPath = null;
                             }
-                            MySqlCommand cmd2 = new MySqlCommand("insert into appliances(nameapp,date,object,changeDate,userCreate) values(@nameapp,@date," + ((panel2.Visible == true) ? cmd.LastInsertedId : comboBox1.SelectedValue) + ",NOW(),@userCreate)", conn);
+
+
+
+                            SQLiteCommand cmd2 = new SQLiteCommand("insert into appliances(nameapp,dates,object,changeDate,userCreate) values(@nameapp,@date," + ((panel2.Visible == true) ? lastid : comboBox1.SelectedValue) + ",date('now'),@userCreate)", conn);
 
                             foreach (ListViewItem item in listView2.Items)
                             {

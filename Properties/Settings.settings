@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="server" Type="System.String" Scope="User">
-      <Value Profile="(Default)">10.0.0.95</Value>
+      <Value Profile="(Default)">D:\\Users\\Pavilion\\Downlddoads\\objects_base-master\\bin\\Debug\\sql.db</Value>
     </Setting>
     <Setting Name="repDate" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
@@ -36,6 +36,9 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="group" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="location" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>

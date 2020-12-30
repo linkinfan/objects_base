@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+﻿using System.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -6,13 +6,13 @@ using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Data.SQLite;
 
 namespace BestWorker
 {
     public partial class changeAppliance : Form
     {
-        server server = new server();
-        private MySqlConnection conn;
+        private SQLiteConnection conn;
         dL dL = new dL();
         int appid = Properties.Settings.Default.applianceID;
         appliances apliaForm = new appliances();
@@ -21,7 +21,7 @@ namespace BestWorker
             InitializeComponent();
             Size res = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Size;
             this.Location = new Point(res.Width / 3, res.Height/3);
-            conn = new MySqlConnection(server.get());
+            conn = new SQLiteConnection(dL.GetServ());
             dateTimePicker1.Value = DateTime.Today.AddMonths(1);
             comboLoad();
             loadInfo();
@@ -31,7 +31,7 @@ namespace BestWorker
         void comboLoad()
         {
             comboBox1.DataSource = null;
-            DataSet ds = dL.get("select idobjects, concat(name, '  ( ', address, ' )') as nameaddress from objects order by name");
+            DataSet ds = dL.get("select idobjects, name || '  ( ' || address || ' )' as nameaddress from objects order by name");
             comboBox1.DataSource = ds.Tables[0];
             comboBox1.ValueMember = "idobjects";
             comboBox1.DisplayMember = "nameaddress";
@@ -46,7 +46,7 @@ namespace BestWorker
 
         void loadInfo()
         {
-            DataSet ds = dL.get("select idappliances, nameapp, DATE_FORMAT(date, '%d-%m-%Y'), object from appliances where idappliances='" + appid + "';");
+            DataSet ds = dL.get("select idappliances, nameapp, strftime('%d-%m-%Y', dates), object from appliances where idappliances='" + appid + "';");
             comboBox1.SelectedValue = ds.Tables[0].Rows[0][3].ToString();
             applianceText.Text = ds.Tables[0].Rows[0][1].ToString();
             if (ds.Tables[0].Rows[0][2].ToString() != "")
@@ -68,8 +68,9 @@ namespace BestWorker
                 using (conn)
                     if (conn.State == ConnectionState.Closed)
                     {
-                        MySqlCommand cmd = new MySqlCommand("insert into objects(name, address, groupOb" + /*into + */")" + " values(@name, @address, @group" + /*values + */"');", conn);
+                        SQLiteCommand cmd = new SQLiteCommand("insert into objects(name, address, groupOb" + /*into + */")" + " values(@name, @address, @group" + /*values + */"');", conn);
                         conn.Open();
+                        int lastid = 0;
                         if (panel2.Visible == true && objectName.Text != "" && objectAddress.Text != "" && objectName.Text != " " && objectName.Text != "  ")
                         {
                             cmd.Parameters.AddWithValue("@name", objectName.Text.Replace('/', '.'));
@@ -79,12 +80,17 @@ namespace BestWorker
                             //if (textBox1.Text != "") { cmd.Parameters.AddWithValue("@archive", textBox1.Text); }
                             cmd.ExecuteNonQuery();
                             MessageBox.Show("Добавлен объект");
+                            SQLiteCommand lastcomm = new SQLiteCommand("select last_insert_rowid() as idobjects from objects");
+                            conn.Open();
+                            cmd.ExecuteNonQuery();
+                            System.Object temp = lastcomm.ExecuteScalar();
+                            lastid = int.Parse(temp.ToString());
                         }
-                        MySqlCommand cmd2 = new MySqlCommand("update appliances set" +
-                            " nameapp=@nameapp,date=@date,object=@object,changeDate=NOW(),userChange=@userChange where idappliances=@idapp", conn);
+                        SQLiteCommand cmd2 = new SQLiteCommand("update appliances set" +
+                            " nameapp=@nameapp,dates=@date,object=@object,changeDate=date('now'),userChange=@userChange where idappliances=@idapp", conn);
                         cmd2.Parameters.AddWithValue("@nameapp", applianceText.Text);
                         cmd2.Parameters.AddWithValue("@date", dateTimePicker1.Value);
-                        cmd2.Parameters.AddWithValue("@object", ((panel2.Visible == true) ? cmd.LastInsertedId : comboBox1.SelectedValue));
+                        cmd2.Parameters.AddWithValue("@object", ((panel2.Visible == true) ? lastid : comboBox1.SelectedValue));
                         cmd2.Parameters.AddWithValue("@idapp", appid); 
                         cmd2.Parameters.AddWithValue("@userChange", Environment.UserName);
                         cmd2.ExecuteNonQuery();

@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+﻿using System.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -6,13 +6,13 @@ using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Data.SQLite;
 
 namespace BestWorker
 {
     public partial class changeObject : Form
     {
-        server server = new server();
-        MySqlConnection conn;
+        SQLiteConnection conn;
         dL dL = new dL();
         string idOb = Properties.Settings.Default.idOb;
         public changeObject()
@@ -20,7 +20,7 @@ namespace BestWorker
             InitializeComponent();
             Size res = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Size;
             this.Location = new Point(res.Width / 3, res.Height / 3);
-            conn = new MySqlConnection(server.get());
+            conn = new SQLiteConnection(dL.GetServ());
             loadInfo();
         }
 
@@ -47,7 +47,7 @@ namespace BestWorker
                     {
                         if (objectName.Text != "" && objectAddress.Text != "")
                         {
-                            MySqlCommand cmd = new MySqlCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + "');", conn);
+                            SQLiteCommand cmd = new SQLiteCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + "');", conn);
                             conn.Open();
                             cmd.Parameters.AddWithValue("@name", objectName.Text.Replace('/', '.'));
                             cmd.Parameters.AddWithValue("@address", objectAddress.Text.Replace('/', '.'));

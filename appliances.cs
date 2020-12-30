@@ -1,39 +1,54 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
+using System.Data.SQLite;
+using System.Collections.Generic;
 
 namespace BestWorker
 {
     public partial class appliances : Form
     {
         dL dL = new dL();
-        server server = new server();
-        MySqlConnection conn;
+        SQLiteConnection conn;
         private BindingSource bindingSource1 = new BindingSource();
         private DataTable table = new DataTable();
         DataGridView.HitTestInfo hti;
         ContextMenu m = new ContextMenu();
-        string query = "SELECT idappliances, o.idobjects, o.name as 'Имя объекта', og.nameGroup as 'Группа', o.address as 'Адрес', nameapp as 'Название оборудования', if(date_add(date, interval -30 day) > now(),'ПОВЕРКА НЕ ТРЕБУЕТСЯ', concat(datediff(date,now()), ' дней')) as 'До окончания поверки осталось', DATE_FORMAT(date, '%d-%m-%Y') as 'Дата следующей поверки' FROM appliances a inner join objects o on o.idobjects=a.object inner join objectgroup og on og.idobjectgroup=o.groupOb ";
+        string query = "SELECT idappliances, o.idobjects, o.name as 'Имя объекта', og.nameGroup as 'Группа', o.address as 'Адрес', nameapp as 'Название оборудования', dates as 'До окончания поверки осталось', strftime('%d-%m-%Y', dates) as 'Дата следующей поверки', del  FROM appliances a inner join objects o on o.idobjects=a.object inner join objectgroup og on og.idobjectgroup=o.groupOb ";
         public appliances()
         {
             InitializeComponent();
-            conn = new MySqlConnection(server.get());
+            //string s = "";
+            //if (File.Exists(s))
+            //{
+
+            //}
+            conn = new SQLiteConnection(dL.GetServ());
+
+            
+            try
+            {
+                using (conn)
+                    if (conn.State == ConnectionState.Closed)
+                    {
+                        conn.Open();
+                        conn.Close();
+                    }
+            }
+            catch (SQLiteException ex) { MessageBox.Show(ex.Message); dbnotfound db = new dbnotfound(); db.ShowDialog(); }
+
             m.MenuItems.Add(new MenuItem("Изменить", MenuClick));
             m.MenuItems.Add(new MenuItem("Удалить", MenuClick));
             //Clipboard.SetText(query + "order by date;");
-            table = dL.get(query + "order by date;").Tables[0];
+            table = dL.get(query + "order by dates;").Tables[0];
             bindingSource1.DataSource = table;
             loadGroups();
-            loadObjects(bindingSource1);
+            LoadObjects(DataLoad());
             textBox1.Text = "1";
             textBox1.Clear();
+
+            
         }
 
         void loadGroups()
@@ -56,20 +71,36 @@ namespace BestWorker
             dataGridView1.Columns[6].Width = dataGridView1.Width / 7;
             dataGridView1.Columns[7].Width = dataGridView1.Width - (dataGridView1.Width / 30 + dataGridView1.Width / 30 + dataGridView1.Width / 6 + dataGridView1.Width / 10 + dataGridView1.Width / 4 + dataGridView1.Width / 5 + dataGridView1.Width / 7) - 20;
         }
-        void loadObjects(BindingSource datas)
+        void LoadObjects(BindingSource datas)
         {
             dataGridView1.DataSource = null;
             dataGridView1.DataSource = datas;
-            dataGridView1.Columns[6].DefaultCellStyle.ForeColor = Color.Red;
+            dataGridView1.Columns[8].Visible = false;
+            if (dataGridView1.Columns["search"] != null) dataGridView1.Columns["search"].Visible = false;
             datagridSize();
-            for (int i = 0; i < dataGridView1.RowCount; i++)
+            foreach (DataGridViewRow row in dataGridView1.Rows)
             {
-                if (dataGridView1.Rows[i].Cells[6].Value.ToString().Contains("ПОВЕРКА НЕ ТРЕБУЕТСЯ"))
+                if (row.Cells[8].Value.ToString() == "1")
                 {
-                    dataGridView1.Rows[i].Cells[6].Style.ForeColor = Color.Black;
+                    dataGridView1.Rows.Remove(row);
+                }
+                if (row.Cells[6].Value != DBNull.Value)
+                {
+
+                    DateTime val = Convert.ToDateTime(row.Cells[6].Value).AddDays(-30);
+                    DateTime date = Convert.ToDateTime(row.Cells[6].Value);
+                    if (val > DateTime.Now)
+                    {
+                        row.Cells[6].Value = "ПОВЕРКА НЕ ТРЕБУЕТСЯ";
+                    }
+                    if (val < DateTime.Now)
+                    {
+                        row.Cells[6].Style.ForeColor = Color.Red;
+                        row.Cells[6].Value = ((date - DateTime.Now).Days).ToString() + " дней";
+                    }
                 }
             }
-            label1.Text = "Всего" + dataGridView1.Rows.Count.ToString() + " записей";
+            label1.Text = "Всего " + dataGridView1.Rows.Count.ToString() + " записей";
         }
         private void textBox1_Enter(object sender, EventArgs e)
         {
@@ -101,41 +132,51 @@ namespace BestWorker
             }
         }
 
-        BindingSource searchDataLoad()
+        DataTable search(string q, string search)
         {
-            string search = textBox1.Text.ToLower();
-            string q = "";
-            string whereGroupQuery = "where o.groupOb='" + comboBox1.SelectedValue.ToString() + "' ";
             bool searchText = textBox1.Text != "" && textBox1.Text != "Искать по объекту или адресу...";
+            DataTable dt = dL.get(q + " order by dates").Tables[0];
+            if (searchText)
+            {
+                dt.Columns.Add("search");
+                for (int i = 0; i < dt.Rows.Count; i++)
+                {
+                    dt.Rows[i]["search"] = dt.Rows[i][2].ToString().ToLower() + " " + dt.Rows[i][4].ToString().ToLower();
+                }
+                foreach (DataRow row in dt.Rows) 
+                {
+                    if (!row["search"].ToString().Contains(search)) 
+                    {
+                        row.Delete();
+                    }
+                }
+                return dt;
+            }
+            else
+            {
+                return dt;
+            }
+        }
+        BindingSource DataLoad()
+        {
+            string searchText = textBox1.Text.ToLower();
+            string whereGroupQuery = "where o.groupOb='" + comboBox1.SelectedValue.ToString() + "' ";
             bool groupSearch = comboBox1.SelectedValue.ToString() != "1";
             if (comboBox1.Visible == false)
             {
-                q = query + (searchText ? "where (o.name like LOWER('%" + search + "%') or o.address like LOWER('%" + search + "%')) " : "") + "order by date;";
-                bindingSource1.DataSource = dL.get(q).Tables[0];
+                bindingSource1.DataSource = search(query, searchText);
             }
             else if (comboBox1.Visible == true)
             {
-                q = query + (groupSearch ? whereGroupQuery : "") + (searchText ? (groupSearch ? " and " : "where ") + "(o.name like LOWER('%" + search + "%') or o.address like LOWER('%" + search + "%')) " : "") + "order by date;";
-
-                bindingSource1.DataSource = dL.get(q).Tables[0];
+                //q = query + (groupSearch ? whereGroupQuery : "") + (searchText ? (groupSearch ? " and " : "where ") + "name like lower('%" + search + "%') or address like lower('%" + search + "%')" : "") + " order by dates;";
+                //Clipboard.SetText(q);
+                string q = query + (groupSearch ? whereGroupQuery : "");
+                bindingSource1.DataSource = search(q, searchText);
             }
-            //Clipboard.SetText(q);
             return bindingSource1;
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //MessageBox.Show(comboBox1.SelectedValue.ToString());
-            loadObjects(searchDataLoad());
-        }
 
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            comboBox1.Visible = false;
-            textBox1.Text = "";
-            linkLabel1.Visible = false;
-            loadObjects(searchDataLoad());            
-        }
 
         private void comboBox1_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -147,17 +188,11 @@ namespace BestWorker
             datagridSize();
         }
 
-        private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            comboBox1.Visible = true;
-            linkLabel1.Visible = true;
-            loadObjects(searchDataLoad());
-        }
 
 
         private void textBox1_KeyUp(object sender, KeyEventArgs e)
         {
-            loadObjects(searchDataLoad());
+            LoadObjects(DataLoad());
         }
 
         private void dataGridView1_MouseClick(object sender, MouseEventArgs e)
@@ -189,15 +224,14 @@ namespace BestWorker
                         using (conn)
                             if (conn.State == ConnectionState.Closed)
                             {
-                                MySqlCommand cmd = new MySqlCommand("delete from appliances where idappliances='" + appid + "';", conn);
+                                SQLiteCommand cmd = new SQLiteCommand("delete from appliances where idappliances='" + appid + "';", conn);
                                 conn.Open();
                                 cmd.ExecuteNonQuery();
                                 conn.Close();
                                 MessageBox.Show("Прибор <" + appname + "> удален");
                             }
 
-                        loadObjects(searchDataLoad());
-
+                        LoadObjects(DataLoad());
                         if (hti.RowIndex == 0) dataGridView1.Rows[hti.RowIndex + 1].Selected = true;
                         else if (hti.RowIndex > 0) dataGridView1.Rows[hti.RowIndex - 1].Selected = true;
                     }
@@ -211,8 +245,7 @@ namespace BestWorker
                     changeAppliance cha = new changeAppliance();
                     cha.ShowDialog();
 
-                    loadObjects(searchDataLoad());
-
+                    LoadObjects(DataLoad());
                     dataGridView1.Rows[hti.RowIndex].Selected = true;
                 }
 
@@ -232,8 +265,7 @@ namespace BestWorker
                 Properties.Settings.Default.applianceID = position;
                 changeAppliance cha = new changeAppliance();
                 cha.ShowDialog();
-                loadObjects(searchDataLoad());
-
+                LoadObjects(DataLoad());
                 dataGridView1.Rows[hti.RowIndex].Selected = true;
             }
         }
@@ -242,6 +274,11 @@ namespace BestWorker
         {
             addSnapApp add = new addSnapApp();
             add.ShowDialog();
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadObjects(DataLoad());
         }
     }
 }

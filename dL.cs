@@ -1,25 +1,33 @@
 ﻿using System.Data;
-using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
 using System.Collections.Generic;
+using System.Data.SQLite;
+using System.Windows.Forms;
 
 namespace BestWorker
 {
 
     class dL
     {
-        server server = new server();
-        MySqlConnection conn;
+        SQLiteConnection conn;
 
+        public string GetServ()
+        {
+            //MessageBox.Show($"Data Source=" + Properties.Settings.Default.server + ";Version=3;");
+            return $"Data Source=" + Properties.Settings.Default.server + ";Version=3;";
+        }
         public DataSet get(string adapter)
         {
-            conn = new MySqlConnection(server.get());
+            conn = new SQLiteConnection(GetServ());
             using (conn)
             {
                 DataSet ds = new DataSet();
                 if (conn.State == ConnectionState.Closed)
                 {
-                    MySqlDataAdapter MyAdapter = new MySqlDataAdapter(adapter, conn);
+                    SQLiteDataAdapter MyAdapter = new SQLiteDataAdapter(adapter, conn);
                     conn.Open();
+
+                    MyAdapter.AcceptChangesDuringFill = true;
                     MyAdapter.Fill(ds);
                     conn.Close();
                 }
@@ -27,15 +35,15 @@ namespace BestWorker
             }
         }
 
-        public List<string> listByDataReader(MySqlCommand command, string whatReturn)
+        public List<string> listByDataReader(SQLiteCommand command, string whatReturn)
         {
             List<string> innerList = new List<string>();
-            conn = new MySqlConnection(server.get());
+            conn = new SQLiteConnection(GetServ());
             using (conn)
             {
                 conn.Open();
 
-                MySqlDataReader read = command.ExecuteReader();
+                SQLiteDataReader read = command.ExecuteReader();
 
                 if (read.HasRows)
                 {
@@ -44,7 +52,7 @@ namespace BestWorker
                         innerList.Add(read[whatReturn].ToString());
                     }
                 }
-                conn.Close(); 
+                conn.Close();
             }
             return innerList;
         }

@@ -46,9 +46,9 @@
             this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.panel2 = new System.Windows.Forms.Panel();
             this.label4 = new System.Windows.Forms.Label();
+            this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
-            this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.groupBox1.SuspendLayout();
@@ -124,6 +124,7 @@
             // 
             // listView2
             // 
+            this.listView2.HideSelection = false;
             this.listView2.Location = new System.Drawing.Point(441, 12);
             this.listView2.Margin = new System.Windows.Forms.Padding(4);
             this.listView2.MultiSelect = false;
@@ -244,6 +245,19 @@
             this.label4.TabIndex = 85;
             this.label4.Text = "Группа";
             // 
+            // linkLabel3
+            // 
+            this.linkLabel3.AutoSize = true;
+            this.linkLabel3.Location = new System.Drawing.Point(407, 12);
+            this.linkLabel3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.linkLabel3.Name = "linkLabel3";
+            this.linkLabel3.Size = new System.Drawing.Size(304, 17);
+            this.linkLabel3.TabIndex = 84;
+            this.linkLabel3.TabStop = true;
+            this.linkLabel3.Text = "Добавить папку с файлами (необязательно)";
+            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            this.linkLabel3.MouseHover += new System.EventHandler(this.linkLabel3_MouseHover);
+            // 
             // comboBox2
             // 
             this.comboBox2.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
@@ -266,19 +280,6 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(475, 24);
             this.comboBox1.TabIndex = 83;
-            // 
-            // linkLabel3
-            // 
-            this.linkLabel3.AutoSize = true;
-            this.linkLabel3.Location = new System.Drawing.Point(407, 12);
-            this.linkLabel3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.linkLabel3.Name = "linkLabel3";
-            this.linkLabel3.Size = new System.Drawing.Size(304, 17);
-            this.linkLabel3.TabIndex = 84;
-            this.linkLabel3.TabStop = true;
-            this.linkLabel3.Text = "Добавить папку с файлами (необязательно)";
-            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
-            this.linkLabel3.MouseHover += new System.EventHandler(this.linkLabel3_MouseHover);
             // 
             // addSnapApp
             // 
