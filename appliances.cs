@@ -26,10 +26,9 @@ namespace BestWorker
             //}
             conn = new SQLiteConnection(dL.GetServ());
 
-            
+
             try
             {
-                using (conn)
                     if (conn.State == ConnectionState.Closed)
                     {
                         conn.Open();
@@ -41,14 +40,14 @@ namespace BestWorker
             m.MenuItems.Add(new MenuItem("Изменить", MenuClick));
             m.MenuItems.Add(new MenuItem("Удалить", MenuClick));
             //Clipboard.SetText(query + "order by date;");
-            table = dL.get(query + "order by dates;").Tables[0];
-            bindingSource1.DataSource = table;
+            //table = dL.get(query + "order by dates;").Tables[0];
+            //bindingSource1.DataSource = table;
             loadGroups();
-            LoadObjects(DataLoad());
+            //LoadObjects(DataLoad());
             textBox1.Text = "1";
             textBox1.Clear();
 
-            
+
         }
 
         void loadGroups()
@@ -143,9 +142,9 @@ namespace BestWorker
                 {
                     dt.Rows[i]["search"] = dt.Rows[i][2].ToString().ToLower() + " " + dt.Rows[i][4].ToString().ToLower();
                 }
-                foreach (DataRow row in dt.Rows) 
+                foreach (DataRow row in dt.Rows)
                 {
-                    if (!row["search"].ToString().Contains(search)) 
+                    if (!row["search"].ToString().Contains(search))
                     {
                         row.Delete();
                     }
@@ -214,14 +213,15 @@ namespace BestWorker
                 {
                     string appname = dataGridView1.Rows[hti.RowIndex].Cells[5].Value.ToString();
                     string appid = dataGridView1.Rows[hti.RowIndex].Cells[0].Value.ToString();
-                    string message = "Вы уверены, что хотите удалить прибор <" + appname + "> ?";
+                    string message = "Вы уверены, что хотите удалить прибор \'" + appname + "\' ?";
                     const string caption = "Подтверждение удаления прибора";
                     var result = MessageBox.Show(message, caption,
                                                  MessageBoxButtons.YesNo,
                                                  MessageBoxIcon.Question);
                     if (result == DialogResult.Yes)
                     {
-                        using (conn)
+
+                        if (this.IsDisposed) return;
                             if (conn.State == ConnectionState.Closed)
                             {
                                 SQLiteCommand cmd = new SQLiteCommand("delete from appliances where idappliances='" + appid + "';", conn);
@@ -232,8 +232,8 @@ namespace BestWorker
                             }
 
                         LoadObjects(DataLoad());
-                        if (hti.RowIndex == 0) dataGridView1.Rows[hti.RowIndex + 1].Selected = true;
-                        else if (hti.RowIndex > 0) dataGridView1.Rows[hti.RowIndex - 1].Selected = true;
+                        //if (hti.RowIndex == 0) dataGridView1.Rows[hti.RowIndex + 1].Selected = true;
+                        //else if (hti.RowIndex > 0) dataGridView1.Rows[hti.RowIndex - 1].Selected = true;
                     }
 
 
@@ -277,6 +277,11 @@ namespace BestWorker
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadObjects(DataLoad());
+        }
+
+        private void appliances_Activated(object sender, EventArgs e)
         {
             LoadObjects(DataLoad());
         }

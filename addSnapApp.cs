@@ -48,72 +48,78 @@ namespace BestWorker
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            if (listView2.Items.Count > 0 )
-            {                
+            if (listView2.Items.Count > 0)
+            {
                 try
                 {
                     string path = folderBrowserDialog1.SelectedPath;
-                    string into = ( path!= "") ? ", archive" : "";
+                    string into = (path != "") ? ", archive" : "";
                     string values = (path != "") ? ", @archive" : "";
                     List<List<string>> appliances = new List<List<string>>();
-                    using (conn)
-                        if (conn.State == ConnectionState.Closed)
+                    if (conn.State == ConnectionState.Closed)
+                    {
+                        int lastid = 0;
+                        SQLiteCommand cmd = new SQLiteCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + ");", conn);
+                        if (panel2.Visible == true && objectName.Text != "" && objectAddress.Text != "" && objectName.Text != " " && objectName.Text != "  ")
                         {
-                            int lastid = 0;
-                            SQLiteCommand cmd = new SQLiteCommand("insert into objects(name, address, groupOb" + into + ")" + " values(@name, @address, @group" + values + ");", conn);
-                            conn.Open();
-                            if (panel2.Visible == true && objectName.Text != "" && objectAddress.Text != "" && objectName.Text != " " && objectName.Text != "  ")
-                            {                                
-                                cmd.Parameters.AddWithValue("@name", objectName.Text.Replace('/', '.'));
-                                cmd.Parameters.AddWithValue("@address", objectAddress.Text.Replace('/', '.'));
-                                cmd.Parameters.AddWithValue("@group", comboBox2.SelectedValue);
-                                
-                                if (path != "") { cmd.Parameters.AddWithValue("@archive", path); }
-                                cmd.ExecuteNonQuery();
-                                MessageBox.Show("Добавлен объект");
+                            cmd.Parameters.AddWithValue("@name", objectName.Text.Replace('/', '.'));
+                            cmd.Parameters.AddWithValue("@address", objectAddress.Text.Replace('/', '.'));
+                            cmd.Parameters.AddWithValue("@group", comboBox2.SelectedValue);
 
-                                SQLiteCommand lastcomm = new SQLiteCommand("select last_insert_rowid() as idobjects from objects");
+                            if (path != "") { cmd.Parameters.AddWithValue("@archive", path); }
+                            cmd.ExecuteNonQuery();
+                            MessageBox.Show("Добавлен объект");
+                            DataSet ds = dL.get("select * from appliances");
+                            if (ds.Tables[0].Rows.Count == 0)
+                                lastid = 1;
+                            else
+                            {
+                                SQLiteCommand lastcomm = new SQLiteCommand("select last_insert_rowid() as idobjects from objects", conn);
                                 conn.Open();
                                 cmd.ExecuteNonQuery();
+                                conn.Close();
                                 System.Object temp = lastcomm.ExecuteScalar();
                                 lastid = int.Parse(temp.ToString());
-
-                                dateTimePicker1.Value = DateTime.Today;
-                                folderBrowserDialog1.SelectedPath = null;
                             }
 
-
-
-                            SQLiteCommand cmd2 = new SQLiteCommand("insert into appliances(nameapp,dates,object,changeDate,userCreate) values(@nameapp,@date," + ((panel2.Visible == true) ? lastid : comboBox1.SelectedValue) + ",date('now'),@userCreate)", conn);
-
-                            foreach (ListViewItem item in listView2.Items)
-                            {
-                                appliancesNameList.Add(item.SubItems[0].Text);
-                            }
-
-                            foreach (ListViewItem item in listView2.Items)
-                            {
-                                appliancesDateList.Add(item.SubItems[1].Text);
-                            }
-                            
-                            for (int i = 0; i<=listView2.Items.Count - 1;i++)
-                            {
-                                cmd2.Parameters.Clear();
-                                cmd2.Parameters.AddWithValue("@nameapp", appliancesNameList[i]);
-                                cmd2.Parameters.AddWithValue("@date", Convert.ToDateTime(appliancesDateList[i]));
-                                cmd2.Parameters.AddWithValue("@userCreate", Environment.UserName);
-                                cmd2.ExecuteNonQuery();
-                            }
-                            MessageBox.Show("Оборудование привязано");
-                            objectName.Text = "";
-                            objectAddress.Text = "";
-                            applianceText.Text = "";
-                            listView2.Items.Clear();
-                            comboBox2.SelectedIndex = 0;
-                            dateTimePicker1.Value = DateTime.Today.AddMonths(1);
-                            appliancesDateList = new List<string>();
-                            appliancesNameList = new List<string>();
+                            dateTimePicker1.Value = DateTime.Today;
+                            folderBrowserDialog1.SelectedPath = null;
                         }
+
+
+
+                        SQLiteCommand cmd2 = new SQLiteCommand("insert into appliances(nameapp,dates,object,changeDate,userCreate) values(@nameapp,@date," + ((panel2.Visible == true) ? lastid : comboBox1.SelectedValue) + ",date('now'),@userCreate)", conn);
+
+                        foreach (ListViewItem item in listView2.Items)
+                        {
+                            appliancesNameList.Add(item.SubItems[0].Text);
+                        }
+
+                        foreach (ListViewItem item in listView2.Items)
+                        {
+                            appliancesDateList.Add(item.SubItems[1].Text);
+                        }
+
+                        for (int i = 0; i <= listView2.Items.Count - 1; i++)
+                        {
+                            cmd2.Parameters.Clear();
+                            cmd2.Parameters.AddWithValue("@nameapp", appliancesNameList[i]);
+                            cmd2.Parameters.AddWithValue("@date", Convert.ToDateTime(appliancesDateList[i]));
+                            cmd2.Parameters.AddWithValue("@userCreate", Environment.UserName);
+                            conn.Open();
+                            cmd2.ExecuteNonQuery();
+                            conn.Close();
+                        }
+                        MessageBox.Show("Оборудование привязано");
+                        objectName.Text = "";
+                        objectAddress.Text = "";
+                        applianceText.Text = "";
+                        listView2.Items.Clear();
+                        comboBox2.SelectedIndex = 0;
+                        dateTimePicker1.Value = DateTime.Today.AddMonths(1);
+                        appliancesDateList = new List<string>();
+                        appliancesNameList = new List<string>();
+                    }
                 }
                 catch (FormatException)
                 {
@@ -149,7 +155,7 @@ namespace BestWorker
                 objectName.SelectionStart = objectName.Text.Length;
             }
         }
-        
+
 
         //bool change = false;
         //private void comboBox1_KeyPress(object sender, KeyPressEventArgs e)
@@ -164,7 +170,7 @@ namespace BestWorker
         //        e.Handled = false;
         //    }
         //}
-        
+
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
@@ -216,7 +222,7 @@ namespace BestWorker
 
         private void linkLabel3_MouseHover(object sender, EventArgs e)
         {
-            if(folderBrowserDialog1.SelectedPath!="") toolTip1.SetToolTip(linkLabel3, folderBrowserDialog1.SelectedPath);
+            if (folderBrowserDialog1.SelectedPath != "") toolTip1.SetToolTip(linkLabel3, folderBrowserDialog1.SelectedPath);
         }
     }
 }
